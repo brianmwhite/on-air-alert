@@ -11,6 +11,7 @@
 
 int photocellPin = 0; // the cell and 10K pulldown are connected to a0
 int photocellReading; // the analog reading from the sensor divider
+int lightThresholdValue = 150;
 
 int SERIAL_BAUD_RATE = 115200;
 bool alertOn = false;
@@ -75,12 +76,12 @@ void loop()
   Serial.print("Analog reading = ");
   Serial.println(photocellReading); // the raw analog reading
 
-  if (photocellReading >= 300 && !alertOn)
+  if (photocellReading >= lightThresholdValue && !alertOn)
   {
     alertOn = true;
     CallAPI("http://192.168.7.97:5015/videoalert/on");
   }
-  else if (photocellReading < 300 && alertOn)
+  else if (photocellReading < lightThresholdValue && alertOn)
   {
     alertOn = false;
     CallAPI("http://192.168.7.97:5015/videoalert/off");
