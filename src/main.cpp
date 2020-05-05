@@ -9,9 +9,14 @@
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
 
-int photocellPin = 0; // the cell and 10K pulldown are connected to a0
-int photocellReading; // the analog reading from the sensor divider
+#include "LEDContainer.h"
+
+#define PIN_PHOTOCELL 0
+int photocellReading;
 int lightThresholdValue = 150;
+
+#define PIN_LED_STATUS 14
+LEDContainer LED_Status;
 
 int SERIAL_BAUD_RATE = 115200;
 bool alertOn = false;
@@ -53,10 +58,27 @@ void CallAPI(String url)
     }
 }
 
+void TurnVideoAlertOn() 
+{
+    alertOn = true;
+    CallAPI("http://192.168.7.97:5015/videoalert/on");
+    LED_Status.setStatus(LED_Status.ON);
+    Serial.println("turn video alert on");
+}
+
+void TurnVideoAlertOff() 
+{
+    alertOn = false;
+    CallAPI("http://192.168.7.97:5015/videoalert/off");
+    LED_Status.setStatus(LED_Status.OFF);
+    Serial.println("turn video alert off");
+}
+
 void setup()
 {
   Serial.begin(SERIAL_BAUD_RATE);
   // delay(5000); //for debugging purposes, enough time to start the serial console
+  LED_Status.init(PIN_LED_STATUS);
 
   WiFiManager wifiManager;
   wifiManager.setAPCallback(WifiManagerPortalDisplayedEvent);
@@ -67,24 +89,24 @@ void setup()
   if (wifiManager.autoConnect("Onairalert_4da994b3")) { Serial.println("DEBUG: WifiManager reports true"); }
   else { Serial.println("DEBUG: WifiManager reports false"); }
 
-  CallAPI("http://192.168.7.97:5015/videoalert/off");
+  TurnVideoAlertOff();
 }
 
 void loop()
 {
-  photocellReading = analogRead(photocellPin);
-  Serial.print("Analog reading = ");
-  Serial.println(photocellReading); // the raw analog reading
+  photocellReading = analogRead(PIN_PHOTOCELL);
+  Serial.print("photo sensor reading = ");
+  Serial.print(photocellReading);
+  Serial.print(" alert = ");
+  Serial.println(alertOn);
 
   if (photocellReading >= lightThresholdValue && !alertOn)
   {
-    alertOn = true;
-    CallAPI("http://192.168.7.97:5015/videoalert/on");
+    TurnVideoAlertOn();
   }
   else if (photocellReading < lightThresholdValue && alertOn)
   {
-    alertOn = false;
-    CallAPI("http://192.168.7.97:5015/videoalert/off");
+    TurnVideoAlertOff();
   }
   delay(1000);
 }
