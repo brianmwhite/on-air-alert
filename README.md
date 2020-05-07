@@ -35,3 +35,5 @@ I leaned heavily on info from https://github.com/tigoe/hue-control and here are 
 
 ![Front View](/examples/front-view.jpg)
 ![Top View](/examples/top-view.jpg)
+![Diagram](/examples/on-air-fritzing.png)
+
