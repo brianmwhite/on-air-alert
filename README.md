@@ -30,3 +30,8 @@ I leaned heavily on info from https://github.com/tigoe/hue-control and here are 
     curl -X POST -d '{"devicetype":"my app"}' http://$ADDR/api
     #get status of all lights : 
     curl http://$ADDR/api/$HUE_USER/lights/
+
+### Pictures
+
+![Front View](/examples/front-view.jpg)
+![Top View](/examples/top-view.jpg)
