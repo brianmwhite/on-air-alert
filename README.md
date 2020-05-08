@@ -13,7 +13,8 @@ Why? Due to the covid-19 shelter in place orders, my whole family has been worki
 - Adafruit Feather HUZZAH with ESP8266
 - Photocell
 - Red LED
-- 2x resistors
+- 10KΩ resistor (for photocell)
+- 150Ω resistor (for led)
 - Hue Go
 
 ## Notes
