@@ -36,10 +36,14 @@ The code to change the light is in [another repo of mine](https://github.com/bri
 
 I leaned heavily on info from <https://github.com/tigoe/hue-control> and here are the basics:
 
-    #create a 'user' where $ADDR the IP of the Hue hub
-    curl -X POST -d '{"devicetype":"my app"}' http://$ADDR/api
-    #get status of all lights : 
+    #create a 'user' where $HUE_ADDR the IP of the Hue hub
+    curl -X POST -d '{"devicetype":"my app"}' http://$HUE_ADDR/api
+    #get status of all lights and determine which ID is the light you want to control: 
     curl http://$ADDR/api/$HUE_USER/lights/
+    #turn light on
+    curl -X PUT -d '{"on":false}' http://$HUE_ADDR/api/$HUE_USER/lights/$LIGHT_ID/state
+    #change light to red
+    curl -X PUT -d '{"on": true, "bri": 254, "hue": 65202, "sat": 254, "effect": "none", "xy": [0.6817, 0.3036 ], "ct": 153 }' http://$HUE_ADDR/api/$HUE_USER/lights/$LIGHT_ID/state
 
 ### Pictures
 
