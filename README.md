@@ -16,12 +16,17 @@ Why? Due to the covid-19 shelter in place orders, my whole family has been worki
 - 10KΩ resistor (for photocell)
 - 150Ω resistor (for led)
 - Hue Go
+- Sugru
 
 ## Notes
 
 ### Information Sources
 
 I used Adafruit's excellent tutorials on the [Feather ESP8266](https://learn.adafruit.com/adafruit-feather-huzzah-esp8266) and [photocells](https://learn.adafruit.com/photocells/overview). The code was written using [Visual Studio Code](https://code.visualstudio.com/) with the [Platformio extension](https://platformio.org/install/integration).
+
+### Photocell
+
+I used a photocell I had on hand and attached it using [sugru](https://sugru.com/). I tried electrical tape but that didn't seem to stick well enough. I found a threshold value that worked for my set up but other photocells and environments might have different light values.
 
 ### Hue Go
 
@@ -41,3 +46,4 @@ I leaned heavily on info from <https://github.com/tigoe/hue-control> and here ar
 ![Front View](/examples/front-view.jpg)
 ![Top View](/examples/top-view.jpg)
 ![Diagram](/examples/on-air-fritzing.png)
+![Video](https://media.giphy.com/media/YkyksE6FCZcdOem3Fx/giphy.gif)
