@@ -98,10 +98,12 @@ void setup()
 void loop()
 {
   photocellReading = analogRead(PIN_PHOTOCELL);
-  Serial.print("photo sensor reading = ");
+  Serial.print("photo sensor = ");
   Serial.print(photocellReading);
-  Serial.print(" alert = ");
-  Serial.println(alertOn);
+  Serial.print(" | alert = ");
+  Serial.print(alertOn);
+  Serial.print(" | seconds since = ");
+  Serial.println(NumberOfSecondsSinceLastCheck);
   
   NumberOfSecondsSinceLastCheck++;
   if (NumberOfSecondsSinceLastCheck >= NumberOfSecondsToResetAndCheckAgain)
