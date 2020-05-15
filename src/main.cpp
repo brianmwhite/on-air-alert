@@ -20,6 +20,9 @@ LEDContainer LED_Status;
 
 int SERIAL_BAUD_RATE = 115200;
 bool alertOn = false;
+bool sendLightCommandAgain = false;
+int NumberOfSecondsSinceLastCheck = 0;
+int NumberOfSecondsToResetAndCheckAgain = 60;
 
 void WifiManagerPortalDisplayedEvent(WiFiManager *myWiFiManager) { Serial.println("DEBUG: Wifi Portal Displayed"); }
 void WifiManagerWifiConnectedEvent() { Serial.println("DEBUG: Wifi Connected"); }
@@ -99,14 +102,25 @@ void loop()
   Serial.print(photocellReading);
   Serial.print(" alert = ");
   Serial.println(alertOn);
+  
+  NumberOfSecondsSinceLastCheck++;
+  if (NumberOfSecondsSinceLastCheck >= NumberOfSecondsToResetAndCheckAgain)
+  {
+    sendLightCommandAgain = true;
+    NumberOfSecondsSinceLastCheck = 0;
+  }
 
-  if (photocellReading >= lightThresholdValue && !alertOn)
+  if (photocellReading >= lightThresholdValue && (!alertOn || sendLightCommandAgain))
   {
     TurnVideoAlertOn();
+    sendLightCommandAgain = false;
+    NumberOfSecondsSinceLastCheck = 0;
   }
-  else if (photocellReading < lightThresholdValue && alertOn)
+  else if (photocellReading < lightThresholdValue && (alertOn || sendLightCommandAgain))
   {
     TurnVideoAlertOff();
+    sendLightCommandAgain = false;
+    NumberOfSecondsSinceLastCheck = 0;
   }
   delay(1000);
 }
