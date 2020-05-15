@@ -13,7 +13,7 @@
 
 #define PIN_PHOTOCELL 0
 int photocellReading;
-int lightThresholdValue = 75;
+int lightThresholdValue = 250;
 
 #define PIN_LED_STATUS 14
 LEDContainer LED_Status;
