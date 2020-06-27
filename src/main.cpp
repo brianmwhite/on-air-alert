@@ -13,10 +13,17 @@
 
 #define PIN_PHOTOCELL 0
 int photocellReading;
-int lightThresholdValue = 250;
+int lightThresholdValue = 150;
 
-#define PIN_LED_STATUS 14
-LEDContainer LED_Status;
+#define PIN_LED_RED 14
+#define PIN_LED_GREEN 13
+#define PIN_LED_BLUE 12
+#define PIN_BUTTON 4
+
+int COLOR_RED[] = {255,0,0};
+int COLOR_GREEN[] = {0,255,0};
+int COLOR_BLUE[] = {0,0,255};
+int *LED_COLOR;
 
 int SERIAL_BAUD_RATE = 115200;
 bool alertOn = false;
@@ -27,61 +34,88 @@ int NumberOfSecondsToResetAndCheckAgain = 60;
 void WifiManagerPortalDisplayedEvent(WiFiManager *myWiFiManager) { Serial.println("DEBUG: Wifi Portal Displayed"); }
 void WifiManagerWifiConnectedEvent() { Serial.println("DEBUG: Wifi Connected"); }
 
-void CallAPI(String url) 
+void setColor(int red, int green, int blue)
 {
-    WiFiClient client;
-    HTTPClient http;
+  analogWrite(PIN_LED_RED, red);
+  analogWrite(PIN_LED_GREEN, green);
+  analogWrite(PIN_LED_BLUE, blue);
+}
 
-    Serial.print("[HTTP] begin...\n");
-    if (http.begin(client, url))
+void setColor(int colorValues[]) {
+  analogWrite(PIN_LED_RED, *(colorValues + 0));
+  analogWrite(PIN_LED_GREEN, *(colorValues + 1));
+  analogWrite(PIN_LED_BLUE, *(colorValues + 2));
+}
+
+void LED_ON()
+{
+  setColor(LED_COLOR);
+}
+
+void LED_OFF()
+{
+  setColor(0,0,0);
+}
+
+void CallAPI(String url)
+{
+  WiFiClient client;
+  HTTPClient http;
+
+  Serial.print("[HTTP] begin...\n");
+  if (http.begin(client, url))
+  {
+    Serial.print("[HTTP] GET...\n");
+    // start connection and send HTTP header
+    int httpCode = http.GET();
+
+    // httpCode will be negative on error
+    if (httpCode > 0)
     {
-      Serial.print("[HTTP] GET...\n");
-      // start connection and send HTTP header
-      int httpCode = http.GET();
+      // HTTP header has been send and Server response header has been handled
+      Serial.printf("[HTTP] GET... code: %d\n", httpCode);
 
-      // httpCode will be negative on error
-      if (httpCode > 0)
+      // file found at server
+      if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
       {
-        // HTTP header has been send and Server response header has been handled
-        Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
-        // file found at server
-        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
-        {
-          String payload = http.getString();
-          Serial.println(payload);
-        }
+        String payload = http.getString();
+        Serial.println(payload);
       }
-      else
-      {
-        Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-      }
-
-      http.end();
     }
+    else
+    {
+      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    }
+
+    http.end();
+  }
 }
 
-void TurnVideoAlertOn() 
+void TurnVideoAlertOn()
 {
-    alertOn = true;
-    CallAPI("http://192.168.7.97:5015/videoalert/on");
-    LED_Status.setStatus(LED_Status.ON);
-    Serial.println("turn video alert on");
+  alertOn = true;
+  CallAPI("http://192.168.7.97:5015/videoalert/on");
+  LED_ON();
+  Serial.println("turn video alert on");
 }
 
-void TurnVideoAlertOff() 
+void TurnVideoAlertOff()
 {
-    alertOn = false;
-    CallAPI("http://192.168.7.97:5015/videoalert/off");
-    LED_Status.setStatus(LED_Status.OFF);
-    Serial.println("turn video alert off");
+  alertOn = false;
+  CallAPI("http://192.168.7.97:5015/videoalert/off");
+  LED_OFF();
+  Serial.println("turn video alert off");
 }
 
 void setup()
 {
   Serial.begin(SERIAL_BAUD_RATE);
-  // delay(5000); //for debugging purposes, enough time to start the serial console
-  LED_Status.init(PIN_LED_STATUS);
+  pinMode(PIN_LED_RED, OUTPUT);
+  pinMode(PIN_LED_GREEN, OUTPUT);
+  pinMode(PIN_LED_BLUE, OUTPUT);
+  pinMode(PIN_BUTTON, INPUT_PULLUP);
+
+  LED_COLOR = COLOR_RED;
 
   WiFiManager wifiManager;
   wifiManager.setAPCallback(WifiManagerPortalDisplayedEvent);
@@ -97,6 +131,15 @@ void setup()
 
 void loop()
 {
+  if (digitalRead(PIN_BUTTON) == LOW)
+  {
+    Serial.print("button pressed!");
+    LED_COLOR = COLOR_BLUE;
+    if (alertOn) {
+      LED_ON();
+    }
+  }
+  
   photocellReading = analogRead(PIN_PHOTOCELL);
   Serial.print("photo sensor = ");
   Serial.print(photocellReading);
@@ -104,7 +147,7 @@ void loop()
   Serial.print(alertOn);
   Serial.print(" | seconds since = ");
   Serial.println(NumberOfSecondsSinceLastCheck);
-  
+
   NumberOfSecondsSinceLastCheck++;
   if (NumberOfSecondsSinceLastCheck >= NumberOfSecondsToResetAndCheckAgain)
   {
