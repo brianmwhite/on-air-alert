@@ -31,6 +31,14 @@ bool sendLightCommandAgain = false;
 int NumberOfSecondsSinceLastCheck = 0;
 int NumberOfSecondsToResetAndCheckAgain = 60;
 
+enum AlertModeState
+{
+    ALERT_MODE_AUTO,
+    ALERT_MODE_MANUAL
+};
+
+AlertModeState AlertMode = ALERT_MODE_AUTO;
+
 void WifiManagerPortalDisplayedEvent(WiFiManager *myWiFiManager) { Serial.println("DEBUG: Wifi Portal Displayed"); }
 void WifiManagerWifiConnectedEvent() { Serial.println("DEBUG: Wifi Connected"); }
 
@@ -133,39 +141,53 @@ void loop()
 {
   if (digitalRead(PIN_BUTTON) == LOW)
   {
-    Serial.print("button pressed!");
-    LED_COLOR = COLOR_BLUE;
-    if (alertOn) {
-      LED_ON();
+    Serial.println("button pressed!");
+    if (AlertMode == ALERT_MODE_AUTO) {
+      AlertMode = ALERT_MODE_MANUAL;
+      if (alertOn == true) {
+        alertOn = false;
+        TurnVideoAlertOff();
+        //turn LED white?
+      } else {
+        alertOn = true;
+        TurnVideoAlertOn();
+        //turn LED purple?
+      }
+    } else if (AlertMode == ALERT_MODE_MANUAL) {
+      AlertMode = ALERT_MODE_AUTO;
     }
   }
   
-  photocellReading = analogRead(PIN_PHOTOCELL);
-  Serial.print("photo sensor = ");
-  Serial.print(photocellReading);
-  Serial.print(" | alert = ");
-  Serial.print(alertOn);
-  Serial.print(" | seconds since = ");
-  Serial.println(NumberOfSecondsSinceLastCheck);
+  if (AlertMode == ALERT_MODE_AUTO) {
+    photocellReading = analogRead(PIN_PHOTOCELL);
+    Serial.print("photo sensor = ");
+    Serial.print(photocellReading);
+    Serial.print(" | alert = ");
+    Serial.print(alertOn);
+    Serial.print(" | seconds since = ");
+    Serial.println(NumberOfSecondsSinceLastCheck);
 
-  NumberOfSecondsSinceLastCheck++;
-  if (NumberOfSecondsSinceLastCheck >= NumberOfSecondsToResetAndCheckAgain)
-  {
-    sendLightCommandAgain = true;
-    NumberOfSecondsSinceLastCheck = 0;
+    NumberOfSecondsSinceLastCheck++;
+    if (NumberOfSecondsSinceLastCheck >= NumberOfSecondsToResetAndCheckAgain)
+    {
+      sendLightCommandAgain = true;
+      NumberOfSecondsSinceLastCheck = 0;
+    }
+
+    if (photocellReading >= lightThresholdValue && (!alertOn || sendLightCommandAgain))
+    {
+      TurnVideoAlertOn();
+      sendLightCommandAgain = false;
+      NumberOfSecondsSinceLastCheck = 0;
+    }
+    else if (photocellReading < lightThresholdValue && (alertOn || sendLightCommandAgain))
+    {
+      TurnVideoAlertOff();
+      sendLightCommandAgain = false;
+      NumberOfSecondsSinceLastCheck = 0;
+    }
   }
 
-  if (photocellReading >= lightThresholdValue && (!alertOn || sendLightCommandAgain))
-  {
-    TurnVideoAlertOn();
-    sendLightCommandAgain = false;
-    NumberOfSecondsSinceLastCheck = 0;
-  }
-  else if (photocellReading < lightThresholdValue && (alertOn || sendLightCommandAgain))
-  {
-    TurnVideoAlertOff();
-    sendLightCommandAgain = false;
-    NumberOfSecondsSinceLastCheck = 0;
-  }
+  
   delay(1000);
 }
