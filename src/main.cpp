@@ -20,9 +20,13 @@ int lightThresholdValue = 150;
 #define PIN_LED_BLUE 12
 #define PIN_BUTTON 4
 
-int COLOR_RED[] = {255,0,0};
-int COLOR_GREEN[] = {0,255,0};
-int COLOR_BLUE[] = {0,0,255};
+#define DEBOUNCE 500
+
+int COLOR_RED[] = {255, 0, 0};
+int COLOR_GREEN[] = {0, 255, 0};
+int COLOR_BLUE[] = {0, 0, 255};
+int COLOR_WHITE[] = {255, 255, 255};
+int COLOR_PURPLE[] = {128, 0, 128};
 int *LED_COLOR;
 
 int SERIAL_BAUD_RATE = 115200;
@@ -33,8 +37,8 @@ int NumberOfSecondsToResetAndCheckAgain = 60;
 
 enum AlertModeState
 {
-    ALERT_MODE_AUTO,
-    ALERT_MODE_MANUAL
+  ALERT_MODE_AUTO,
+  ALERT_MODE_MANUAL
 };
 
 AlertModeState AlertMode = ALERT_MODE_AUTO;
@@ -49,10 +53,22 @@ void setColor(int red, int green, int blue)
   analogWrite(PIN_LED_BLUE, blue);
 }
 
-void setColor(int colorValues[]) {
-  analogWrite(PIN_LED_RED, *(colorValues + 0));
-  analogWrite(PIN_LED_GREEN, *(colorValues + 1));
-  analogWrite(PIN_LED_BLUE, *(colorValues + 2));
+void setColor(int colorValues[])
+{
+  int red = *(colorValues + 0);
+  int green = *(colorValues + 1);
+  int blue = *(colorValues + 2);
+
+  Serial.print("R=");
+  Serial.print(red);
+  Serial.print(" | G=");
+  Serial.print(green);
+  Serial.print(" | B=");
+  Serial.println(blue);
+
+  analogWrite(PIN_LED_RED, red);
+  analogWrite(PIN_LED_GREEN, green);
+  analogWrite(PIN_LED_BLUE, blue);
 }
 
 void LED_ON()
@@ -60,9 +76,14 @@ void LED_ON()
   setColor(LED_COLOR);
 }
 
+void LED_ON(int *color)
+{
+  setColor(color);
+}
+
 void LED_OFF()
 {
-  setColor(0,0,0);
+  setColor(0, 0, 0);
 }
 
 void CallAPI(String url)
@@ -102,7 +123,7 @@ void CallAPI(String url)
 void TurnVideoAlertOn()
 {
   alertOn = true;
-  CallAPI("http://192.168.7.97:5015/videoalert/on");
+  CallAPI("http://192.168.7.97:5015/alert/setcolor/red");
   LED_ON();
   Serial.println("turn video alert on");
 }
@@ -110,9 +131,25 @@ void TurnVideoAlertOn()
 void TurnVideoAlertOff()
 {
   alertOn = false;
-  CallAPI("http://192.168.7.97:5015/videoalert/off");
+  CallAPI("http://192.168.7.97:5015/alert/setcolor/off");
   LED_OFF();
   Serial.println("turn video alert off");
+}
+
+void TurnManualAlertOn()
+{
+  alertOn = true;
+  CallAPI("http://192.168.7.97:5015/alert/setcolor/red");
+  LED_ON(COLOR_PURPLE);
+  Serial.println("[override] turn video alert on");
+}
+
+void TurnManualAlertOff()
+{
+  alertOn = false;
+  CallAPI("http://192.168.7.97:5015/alert/setcolor/off");
+  LED_ON(COLOR_WHITE);
+  Serial.println("[override] turn video alert off");
 }
 
 void setup()
@@ -131,8 +168,14 @@ void setup()
 
   //TODO: maybe create a random suffix using https://github.com/marvinroger/ESP8266TrueRandom
 
-  if (wifiManager.autoConnect("Onairalert_4da994b3")) { Serial.println("DEBUG: WifiManager reports true"); }
-  else { Serial.println("DEBUG: WifiManager reports false"); }
+  if (wifiManager.autoConnect("Onairalert_4da994b3"))
+  {
+    Serial.println("DEBUG: WifiManager reports true");
+  }
+  else
+  {
+    Serial.println("DEBUG: WifiManager reports false");
+  }
 
   TurnVideoAlertOff();
 }
@@ -141,53 +184,87 @@ void loop()
 {
   if (digitalRead(PIN_BUTTON) == LOW)
   {
-    Serial.println("button pressed!");
-    if (AlertMode == ALERT_MODE_AUTO) {
+    Serial.println("Button pressed");
+    delay(DEBOUNCE);
+    NumberOfSecondsSinceLastCheck = 0;
+
+    if (AlertMode == ALERT_MODE_AUTO)
+    {
+      Serial.println("-- Switching to manual mode");
       AlertMode = ALERT_MODE_MANUAL;
-      if (alertOn == true) {
-        alertOn = false;
-        TurnVideoAlertOff();
-        //turn LED white?
-      } else {
-        alertOn = true;
-        TurnVideoAlertOn();
-        //turn LED purple?
+      if (alertOn == true)
+      {
+        TurnManualAlertOff();
+        Serial.println("-- Override: alert off");
       }
-    } else if (AlertMode == ALERT_MODE_MANUAL) {
+      else
+      {
+        TurnManualAlertOn();
+        Serial.println("-- Override: alert on");
+      }
+    }
+    else if (AlertMode == ALERT_MODE_MANUAL)
+    {
       AlertMode = ALERT_MODE_AUTO;
+      sendLightCommandAgain = true;
+      Serial.println("-- Switching to auto mode");
     }
   }
   
-  if (AlertMode == ALERT_MODE_AUTO) {
-    photocellReading = analogRead(PIN_PHOTOCELL);
-    Serial.print("photo sensor = ");
-    Serial.print(photocellReading);
-    Serial.print(" | alert = ");
-    Serial.print(alertOn);
-    Serial.print(" | seconds since = ");
-    Serial.println(NumberOfSecondsSinceLastCheck);
+  photocellReading = analogRead(PIN_PHOTOCELL);
+  Serial.print("mode = ");
 
-    NumberOfSecondsSinceLastCheck++;
-    if (NumberOfSecondsSinceLastCheck >= NumberOfSecondsToResetAndCheckAgain)
-    {
-      sendLightCommandAgain = true;
-      NumberOfSecondsSinceLastCheck = 0;
-    }
+  if (AlertMode == ALERT_MODE_AUTO)
+  {
+    Serial.print("auto");
+  }
+  else
+  {
+    Serial.print("manual");
+  }
+  Serial.print(" | photo sensor = ");
+  Serial.print(photocellReading);
+  Serial.print(" | alert = ");
+  Serial.print(alertOn);
+  Serial.print(" | seconds since = ");
+  Serial.println(NumberOfSecondsSinceLastCheck);
 
+  NumberOfSecondsSinceLastCheck++;
+  if (NumberOfSecondsSinceLastCheck >= NumberOfSecondsToResetAndCheckAgain)
+  {
+    sendLightCommandAgain = true;
+    NumberOfSecondsSinceLastCheck = 0;
+  }
+  if (AlertMode == ALERT_MODE_AUTO) 
+  {
     if (photocellReading >= lightThresholdValue && (!alertOn || sendLightCommandAgain))
+      {
+        TurnVideoAlertOn();
+        sendLightCommandAgain = false;
+        NumberOfSecondsSinceLastCheck = 0;
+      }
+      else if (photocellReading < lightThresholdValue && (alertOn || sendLightCommandAgain))
+      {
+        TurnVideoAlertOff();
+        sendLightCommandAgain = false;
+        NumberOfSecondsSinceLastCheck = 0;
+      }
+  } 
+  else if (AlertMode == ALERT_MODE_MANUAL && sendLightCommandAgain)
+  {
+    if (alertOn)
     {
-      TurnVideoAlertOn();
+      TurnManualAlertOn();
       sendLightCommandAgain = false;
       NumberOfSecondsSinceLastCheck = 0;
     }
-    else if (photocellReading < lightThresholdValue && (alertOn || sendLightCommandAgain))
+    else
     {
-      TurnVideoAlertOff();
+      TurnManualAlertOn();
       sendLightCommandAgain = false;
       NumberOfSecondsSinceLastCheck = 0;
     }
   }
-
   
   delay(1000);
 }
