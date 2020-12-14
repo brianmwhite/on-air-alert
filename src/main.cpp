@@ -224,6 +224,8 @@ void loop()
   }
   Serial.print(" | photo sensor = ");
   Serial.print(photocellReading);
+  Serial.print(" | threshold = ");
+  Serial.print(lightThresholdValue);
   Serial.print(" | alert = ");
   Serial.print(alertOn);
   Serial.print(" | seconds since = ");
