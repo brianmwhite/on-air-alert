@@ -27,6 +27,8 @@ int COLOR_GREEN[] = {0, 255, 0};
 int COLOR_BLUE[] = {0, 0, 255};
 int COLOR_WHITE[] = {255, 255, 255};
 int COLOR_PURPLE[] = {128, 0, 128};
+int COLOR_YELLOW[] = {255, 255, 0};
+
 int *LED_COLOR;
 
 int SERIAL_BAUD_RATE = 115200;
@@ -86,8 +88,10 @@ void LED_OFF()
   setColor(0, 0, 0);
 }
 
-void CallAPI(String url)
+bool CallAPI(String url)
 {
+  bool successful_http_call = false;
+
   WiFiClient client;
   HTTPClient http;
 
@@ -109,6 +113,7 @@ void CallAPI(String url)
       {
         String payload = http.getString();
         Serial.println(payload);
+        successful_http_call = true;
       }
     }
     else
@@ -118,37 +123,62 @@ void CallAPI(String url)
 
     http.end();
   }
+  return successful_http_call;
 }
 
 void TurnVideoAlertOn()
 {
   alertOn = true;
-  CallAPI("http://192.168.7.97:5015/alert/setcolor/red");
-  LED_ON();
+  if (CallAPI("http://192.168.7.97:5015/alert/setcolor/red")) 
+  {
+    LED_ON();
+  } 
+  else 
+  {
+    LED_ON(COLOR_WHITE);
+  }
   Serial.println("turn video alert on");
 }
 
 void TurnVideoAlertOff()
 {
   alertOn = false;
-  CallAPI("http://192.168.7.97:5015/alert/setcolor/off");
-  LED_OFF();
+  if (CallAPI("http://192.168.7.97:5015/alert/setcolor/off")) 
+  {
+    LED_OFF();
+  }  
+  else 
+  {
+    LED_ON(COLOR_WHITE);
+  }
   Serial.println("turn video alert off");
 }
 
 void TurnManualAlertOn()
 {
   alertOn = true;
-  CallAPI("http://192.168.7.97:5015/alert/setcolor/red");
-  LED_ON(COLOR_PURPLE);
+  if (CallAPI("http://192.168.7.97:5015/alert/setcolor/red")) 
+  {
+    LED_ON(COLOR_PURPLE);
+  }
+  else 
+  {
+    LED_ON(COLOR_WHITE);
+  }  
   Serial.println("[override] turn video alert on");
 }
 
 void TurnManualAlertOff()
 {
   alertOn = false;
-  CallAPI("http://192.168.7.97:5015/alert/setcolor/off");
-  LED_ON(COLOR_WHITE);
+  if (CallAPI("http://192.168.7.97:5015/alert/setcolor/off"))
+  {
+    LED_ON(COLOR_WHITE);
+  }
+  else 
+  {
+    LED_ON(COLOR_WHITE);
+  }
   Serial.println("[override] turn video alert off");
 }
 
