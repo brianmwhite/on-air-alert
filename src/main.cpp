@@ -173,7 +173,7 @@ void TurnManualAlertOff()
   alertOn = false;
   if (CallAPI("http://192.168.7.97:5015/alert/setcolor/off"))
   {
-    LED_ON(COLOR_WHITE);
+    LED_ON(COLOR_GREEN);
   }
   else 
   {
