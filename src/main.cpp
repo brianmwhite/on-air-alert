@@ -11,25 +11,17 @@
 
 #include "LEDContainer.h"
 
+#include <Adafruit_NeoPixel.h>
+
 #define PIN_PHOTOCELL 0
 int photocellReading;
 int lightThresholdValue = 150;
 
-#define PIN_LED_RED 14
-#define PIN_LED_GREEN 13
-#define PIN_LED_BLUE 12
 #define PIN_BUTTON 4
+#define PIN_NEOPIXEL 15
+#define NEOPIXEL_COUNT 1
 
 #define DEBOUNCE 500
-
-int COLOR_RED[] = {255, 0, 0};
-int COLOR_GREEN[] = {0, 255, 0};
-int COLOR_BLUE[] = {0, 0, 255};
-int COLOR_WHITE[] = {255, 255, 255};
-int COLOR_PURPLE[] = {128, 0, 128};
-int COLOR_YELLOW[] = {255, 255, 0};
-
-int *LED_COLOR;
 
 int SERIAL_BAUD_RATE = 115200;
 bool alertOn = false;
@@ -43,49 +35,25 @@ enum AlertModeState
   ALERT_MODE_MANUAL
 };
 
+Adafruit_NeoPixel pixels(NEOPIXEL_COUNT, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+
+uint32_t COLOR_RED = pixels.Color(255, 0, 0);
+uint32_t COLOR_GREEN = pixels.Color(0, 255, 0);
+uint32_t COLOR_BLUE = pixels.Color(0, 0, 255);
+uint32_t COLOR_WHITE = pixels.Color(255, 255, 255);
+uint32_t COLOR_PURPLE = pixels.Color(128, 0, 128);
+uint32_t COLOR_YELLOW = pixels.Color(255, 255, 0);
+uint32_t COLOR_OFF = pixels.Color(0, 0, 0);
+
 AlertModeState AlertMode = ALERT_MODE_AUTO;
 
 void WifiManagerPortalDisplayedEvent(WiFiManager *myWiFiManager) { Serial.println("DEBUG: Wifi Portal Displayed"); }
 void WifiManagerWifiConnectedEvent() { Serial.println("DEBUG: Wifi Connected"); }
 
-void setColor(int red, int green, int blue)
+void Set_Neopixel_Button_Color(uint32_t neopixel_color)
 {
-  analogWrite(PIN_LED_RED, red);
-  analogWrite(PIN_LED_GREEN, green);
-  analogWrite(PIN_LED_BLUE, blue);
-}
-
-void setColor(int colorValues[])
-{
-  int red = *(colorValues + 0);
-  int green = *(colorValues + 1);
-  int blue = *(colorValues + 2);
-
-  Serial.print("R=");
-  Serial.print(red);
-  Serial.print(" | G=");
-  Serial.print(green);
-  Serial.print(" | B=");
-  Serial.println(blue);
-
-  analogWrite(PIN_LED_RED, red);
-  analogWrite(PIN_LED_GREEN, green);
-  analogWrite(PIN_LED_BLUE, blue);
-}
-
-void LED_ON()
-{
-  setColor(LED_COLOR);
-}
-
-void LED_ON(int *color)
-{
-  setColor(color);
-}
-
-void LED_OFF()
-{
-  setColor(0, 0, 0);
+  pixels.setPixelColor(0, neopixel_color);
+  pixels.show();
 }
 
 bool CallAPI(String url)
@@ -131,11 +99,11 @@ void TurnVideoAlertOn()
   alertOn = true;
   if (CallAPI("http://192.168.7.97:5015/alert/setcolor/red")) 
   {
-    LED_ON();
+    Set_Neopixel_Button_Color(COLOR_RED);
   } 
   else 
   {
-    LED_ON(COLOR_WHITE);
+    Set_Neopixel_Button_Color(COLOR_WHITE);
   }
   Serial.println("turn video alert on");
 }
@@ -145,11 +113,11 @@ void TurnVideoAlertOff()
   alertOn = false;
   if (CallAPI("http://192.168.7.97:5015/alert/setcolor/off")) 
   {
-    LED_OFF();
+    Set_Neopixel_Button_Color(COLOR_OFF);
   }  
   else 
   {
-    LED_ON(COLOR_WHITE);
+    Set_Neopixel_Button_Color(COLOR_WHITE);
   }
   Serial.println("turn video alert off");
 }
@@ -159,11 +127,11 @@ void TurnManualAlertOn()
   alertOn = true;
   if (CallAPI("http://192.168.7.97:5015/alert/setcolor/red")) 
   {
-    LED_ON(COLOR_PURPLE);
+    Set_Neopixel_Button_Color(COLOR_PURPLE);
   }
   else 
   {
-    LED_ON(COLOR_WHITE);
+    Set_Neopixel_Button_Color(COLOR_WHITE);
   }  
   Serial.println("[override] turn video alert on");
 }
@@ -173,11 +141,11 @@ void TurnManualAlertOff()
   alertOn = false;
   if (CallAPI("http://192.168.7.97:5015/alert/setcolor/off"))
   {
-    LED_ON(COLOR_GREEN);
+    Set_Neopixel_Button_Color(COLOR_YELLOW);
   }
   else 
   {
-    LED_ON(COLOR_WHITE);
+    Set_Neopixel_Button_Color(COLOR_WHITE);
   }
   Serial.println("[override] turn video alert off");
 }
@@ -185,12 +153,8 @@ void TurnManualAlertOff()
 void setup()
 {
   Serial.begin(SERIAL_BAUD_RATE);
-  pinMode(PIN_LED_RED, OUTPUT);
-  pinMode(PIN_LED_GREEN, OUTPUT);
-  pinMode(PIN_LED_BLUE, OUTPUT);
+  pixels.begin();
   pinMode(PIN_BUTTON, INPUT_PULLUP);
-
-  LED_COLOR = COLOR_RED;
 
   WiFiManager wifiManager;
   wifiManager.setAPCallback(WifiManagerPortalDisplayedEvent);
